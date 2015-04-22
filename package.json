@@ -1,0 +1,25 @@
+{
+  "name": "grid-fs",
+  "version": "0.0.1",
+  "description": "Provide a compatible fs interface for gridfs.",
+  "main": "index.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "mongodb",
+    "gridfs",
+    "fs"
+  ],
+  "author": "NealRame <contact@nealrame.com>",
+  "license": "ISC",
+  "devDependencies": {
+    "mongodb": "^2.0.27"
+  },
+  "dependencies": {
+    "debug": "^2.1.3"
+  }
+}
