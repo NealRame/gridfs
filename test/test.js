@@ -166,23 +166,43 @@ describe('GridFs#write(fd, buffer, offset, len, pos, cb)', function() {
         });
     });
 
-    after('Close file', function(done) {
-        gfs.close(file1, done);
-    });
-
-    it('should write in a writable opened file without error.', function(done) {
+    it('should write to a writable opened file without error', function(done) {
         var buf = new Buffer('test');
         gfs.write(file1, buf, 0, buf.length, null, function(err, len, buffer) {
+            if (err) {
+                return done(err);
+            }
             try {
-                if (err) {
-                    throw err;
-                }
                 assert.equal(len, buf.length);
                 assert.equal(len, buffer.length);
-                done();
             } catch(err) {
                 done(err);
             }
+            file1.close(function(err) {
+                if (err) {
+                    return done(err);
+                }
+                // Check if we correctly write the data
+                (new mongo.GridStore(db, id1, 'r')).open(function(err, gs) {
+                    if (err) {
+                        return done(err);
+                    }
+                    gs.read(function(err, buffer) {
+                        if (err) {
+                            return done(err);
+                        }
+                        try {
+                            assert(buf.equals(buffer));
+                            done();
+                        } catch(err) {
+                            done(err);
+                        }
+                    });
+                });
+            });
+        });
+    });
+});
         });
     });
 });
