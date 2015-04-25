@@ -203,6 +203,33 @@ describe('GridFs#write(fd, buffer, offset, len, pos, cb)', function() {
         });
     });
 });
+
+describe('GridFs#read(fd, buffer, offset, len, pos, cb)', function() {
+    before('Open file for readding', function(done) {
+        gfs.open(id1, 'r', function(err, _file) {
+            file1 = _file;
+            done(err);
+        });
+    });
+
+    after('Close file', function(done) {
+        gfs.close(file1, done);
+    });
+
+    it('should read from a readable opened file without error', function(done) {
+        var buf = new Buffer(4);
+        gfs.read(file1, buf, 0, 4, 0, function(err, len, buffer) {
+            if (err) {
+                return done(err);
+            }
+            try {
+                assert.equal(4, len);
+                assert.equal('test', buf.toString());
+                assert.equal(buf, buffer);
+                done();
+            } catch (err) {
+                done(err);
+            }
         });
     });
 });
