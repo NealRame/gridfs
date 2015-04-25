@@ -45,17 +45,17 @@ describe('GridFs(mongo, db, root)', function() {
         gfs = new GridFs(mongo, db, 'fs');
     });
 
-    it('should have a `mongo` attribute equals to the one it get passed.',
+    it('should have a `mongo` attribute equals to the one it get passed',
         function() {
             assert.equal(mongo, gfs.mongo);
         }
     );
-    it('should have a `db` attribute equals to the one it get passed.',
+    it('should have a `db` attribute equals to the one it get passed',
         function() {
             assert.equal(db, gfs.db);
         }
     );
-    it('should have a `root` attribute equals to the one it get passed.',
+    it('should have a `root` attribute equals to the one it get passed',
         function() {
             assert.equal('fs', gfs.root);
         }
@@ -67,7 +67,7 @@ describe('GridFs#open(string, \'w\', cb)', function() {
         id1 = new mongo.ObjectId();
     });
 
-    it('should create a file when passing a path string and `\'w\'` flag.',
+    it('should create a file when passing a path string and `\'w\'` flag',
         function(done) {
             gfs.open(id1.toString(), 'w', function(err, _file) {
                 if (err) {
@@ -81,7 +81,7 @@ describe('GridFs#open(string, \'w\', cb)', function() {
 });
 
 describe('GridFs#close(file, cb)', function() {
-    it('should close a write opened file without error.',
+    it('should close a write opened file without error',
         function(done) {
             gfs.close(file1, done);
         }
@@ -89,7 +89,7 @@ describe('GridFs#close(file, cb)', function() {
 });
 
 describe('GridFs#open(string, \'r\', cb)', function() {
-    it('should open an existing file when passing a path string and `\'r\'` flag.',
+    it('should open an existing file when passing a path string and `\'r\'` flag',
         function(done) {
             gfs.open(id1.toString(), 'r', function(err, _file) {
                 if (err) {
@@ -103,7 +103,7 @@ describe('GridFs#open(string, \'r\', cb)', function() {
 });
 
 describe('GridFs#close(file, cb)', function() {
-    it('should close a read opened file without error.',
+    it('should close a read opened file without error',
         function(done) {
             gfs.close(file1, done);
         }
@@ -115,7 +115,7 @@ describe('GridFs#open(id, \'w\', cb)', function() {
         id1 = new mongo.ObjectId();
     });
 
-    it('should create a file when passing an ObjectId and `\'w\'` flag.',
+    it('should create a file when passing an ObjectId and `\'w\'` flag',
         function(done) {
             gfs.open(id1, 'w', function(err, _file) {
                 if (err) {
@@ -129,7 +129,7 @@ describe('GridFs#open(id, \'w\', cb)', function() {
 });
 
 describe('GridFs#close(file, cb)', function() {
-    it('should close a write opened file without error.',
+    it('should close a write opened file without error',
         function(done) {
             gfs.close(file1, done);
         }
@@ -137,7 +137,7 @@ describe('GridFs#close(file, cb)', function() {
 });
 
 describe('GridFs#open(id, \'r\', cb)', function() {
-    it('should open an existing file when passing a ObjecId and `\'r\'` flag.',
+    it('should open an existing file when passing a ObjecId and `\'r\'` flag',
         function(done) {
             gfs.open(id1, 'r', function(err, _file) {
                 if (err) {
@@ -151,7 +151,7 @@ describe('GridFs#open(id, \'r\', cb)', function() {
 });
 
 describe('GridFs#close(file, cb)', function() {
-    it('should close a write opened file without error.',
+    it('should close a write opened file without error',
         function(done) {
             gfs.close(file1, done);
         }
