@@ -18,6 +18,8 @@
   "license": "ISC",
   "devDependencies": {
     "async": "^0.9.0",
+    "chai": "^2.2.0",
+    "chai-as-promised": "^5.0.0",
     "mongodb": "^2.0.27"
   },
   "dependencies": {
