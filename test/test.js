@@ -286,3 +286,20 @@ describe('GridFs#writeFile(path, buffer, cb)', function() {
         check_written_data(id, data, done);
     });
 });
+
+describe('GridFs#appendFile(path, buffer, cb)', function() {
+    var data = crypto.randomBytes(512);
+    var id = new mongo.ObjectId();
+    before('Create file', function(done) {
+        create_file(id, data, done);
+    })
+    it('should append data to a file given its path without error', function(done) {
+        var gfs = new GridFs(mongo, db, 'fs');
+        gfs.appendFile(id.toString(), data, function(err) {
+            done(err);
+        });
+    });
+    it('should write the data correctly', function(done) {
+        check_written_data(id, Buffer.concat([data, data]), done);
+    });
+});
