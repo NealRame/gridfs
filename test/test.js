@@ -303,3 +303,25 @@ describe.skip('GridFs#appendFile(path, buffer, cb)', function() {
         check_written_data(id, Buffer.concat([data, data]), done);
     });
 });
+
+describe('GridFs#readFile(path, buffer, cb)', function() {
+    var data = crypto.randomBytes(512);
+    var id = new mongo.ObjectId();
+    before('Create file', function(done) {
+        create_file(id, data, done);
+    });
+    it('should read the content of a file given its path without error', function(done) {
+        var gfs = new GridFs(mongo, db, 'fs');
+        gfs.readFile(id, function(err, read_data) {
+            if (err) {
+                return done(err);
+            }
+            try {
+                assert(read_data.equals(data));
+                done();
+            } catch (err) {
+                done(err)
+            }
+        });
+    });
+});
