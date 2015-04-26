@@ -287,7 +287,7 @@ describe('GridFs#writeFile(path, buffer, cb)', function() {
     });
 });
 
-describe('GridFs#appendFile(path, buffer, cb)', function() {
+describe.skip('GridFs#appendFile(path, buffer, cb)', function() {
     var data = crypto.randomBytes(512);
     var id = new mongo.ObjectId();
     before('Create file', function(done) {
