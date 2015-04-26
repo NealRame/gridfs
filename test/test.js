@@ -278,7 +278,7 @@ describe('GridFs#writeFile(path, buffer, cb)', function() {
     var id = new mongo.ObjectId();
     it('should write data to a file given its path without error', function(done) {
         var gfs = new GridFs(mongo, db, 'fs');
-        gfs.writeFile(id.toString(), data, function(err) {
+        gfs.writeFile(id, data, function(err) {
             done(err);
         });
     });
@@ -295,7 +295,7 @@ describe.skip('GridFs#appendFile(path, buffer, cb)', function() {
     })
     it('should append data to a file given its path without error', function(done) {
         var gfs = new GridFs(mongo, db, 'fs');
-        gfs.appendFile(id.toString(), data, function(err) {
+        gfs.appendFile(id, data, function(err) {
             done(err);
         });
     });
