@@ -1,16 +1,17 @@
+var _ = require('underscore');
 var assert = require('assert');
 var async = require('async');
+var crypto = require('crypto');
 var mongo = require('mongodb');
 var MongoClient = mongo.MongoClient;
 var GridFs = require('../lib/gridfs');
 
 // fixtures
-var db, gfs, id1, file1;
+var db, gfs;
 
 function clean_up(done) {
     var files = db.collection('fs.files');
     var chunks = db.collection('fs.chunks');
-
     async.series([
         function(next) {
             files.drop(next);
@@ -19,6 +20,49 @@ function clean_up(done) {
             chunks.drop(next);
         }
     ], done);
+}
+
+function create_file(file_id, data, done) {
+    if (_.isFunction(data)) {
+        done = data;
+        data = null;
+    }
+    (new mongo.GridStore(db, file_id, 'w', {
+        root: 'fs'
+    })).open(function(err, file) {
+        if (err) {
+            return done(err);
+        }
+        if (data) {
+            file.write(data, function(err) {
+                if (err) {
+                    return done(err);
+                }
+                file.close(done);
+            });
+        } else {
+            file.close(done);
+        }
+    });
+}
+
+function check_written_data(file_id, data, done) {
+    (new mongo.GridStore(db, file_id, 'r')).open(function(err, file) {
+        if (err) {
+            return done(err);
+        }
+        file.read(function(err, buffer) {
+            if (err) {
+                return done(err);
+            }
+            try {
+                assert(data.equals(buffer));
+                file.close(done);
+            } catch(err) {
+                done(err);
+            }
+        });
+    });
 }
 
 before('Connect to mongodb', function(done) {
@@ -31,7 +75,6 @@ before('Connect to mongodb', function(done) {
             }
             db = _db;
             done(err);
-            // clean_up(done);
         }
     );
 });
@@ -41,10 +84,10 @@ after('Clean up', function(done) {
 });
 
 describe('GridFs(mongo, db, root)', function() {
+    var gfs;
     before('Create a GridFs instance', function() {
         gfs = new GridFs(mongo, db, 'fs');
     });
-
     it('should have a `mongo` attribute equals to the one it get passed',
         function() {
             assert.equal(mongo, gfs.mongo);
@@ -62,67 +105,65 @@ describe('GridFs(mongo, db, root)', function() {
     );
 });
 
-describe('GridFs#open(string, \'w\', cb)', function() {
-    before('Create a file id', function() {
-        id1 = new mongo.ObjectId();
-    });
-
+describe('GridFs#open(file_id, \'w\', cb)', function() {
     it('should create a file when passing a path string and `\'w\'` flag',
         function(done) {
-            gfs.open(id1.toString(), 'w', function(err, _file) {
+            var gfs = new GridFs(mongo, db, 'fs');
+            var id = new mongo.ObjectId();
+            gfs.open(id.toString(), 'w', function(err, file) {
                 if (err) {
-                    done(err);
+                    return done(err);
                 }
-                file1 = _file;
-                done();
+                file.close(function(err) {
+                    if (err) {
+                        return done(err);
+                    }
+                    (new mongo.GridStore(db, id, 'r')).open(done);
+                });
             });
         }
     );
-});
-
-describe('GridFs#close(file, cb)', function() {
-    it('should close a write opened file without error',
-        function(done) {
-            gfs.close(file1, done);
-        }
-    );
-});
-
-describe('GridFs#open(string, \'r\', cb)', function() {
-    it('should open an existing file when passing a path string and `\'r\'` flag',
-        function(done) {
-            gfs.open(id1.toString(), 'r', function(err, _file) {
-                if (err) {
-                    done(err);
-                }
-                file1 = _file;
-                done();
-            });
-        }
-    );
-});
-
-describe('GridFs#close(file, cb)', function() {
-    it('should close a read opened file without error',
-        function(done) {
-            gfs.close(file1, done);
-        }
-    );
-});
-
-describe('GridFs#open(id, \'w\', cb)', function() {
-    before('Create a file id', function() {
-        id1 = new mongo.ObjectId();
-    });
-
     it('should create a file when passing an ObjectId and `\'w\'` flag',
         function(done) {
-            gfs.open(id1, 'w', function(err, _file) {
+            var gfs = new GridFs(mongo, db, 'fs');
+            var id = new mongo.ObjectId();
+            gfs.open(id, 'w', function(err, file) {
                 if (err) {
-                    done(err);
+                    return done(err);
                 }
-                file1 = _file;
-                done();
+                file.close(function(err) {
+                    if (err) {
+                        return done(err);
+                    }
+                    (new mongo.GridStore(db, id, 'r')).open(done);
+                });
+            });
+        }
+    );
+});
+
+describe('GridFs#open(file_id, \'r\', cb)', function() {
+    it('should open an existing file when passing a string and `\'r\'` flag',
+        function(done) {
+            var gfs = new GridFs(mongo, db, 'fs');
+            var id = new mongo.ObjectId();
+            create_file(id, function(err) {
+                if (err) {
+                    return done(err);
+                }
+                gfs.open(id.toString(), 'r', done);
+            });
+        }
+    );
+    it('should open an existing file when passing a ObjectId and `\'r\'` flag',
+        function(done) {
+            var gfs = new GridFs(mongo, db, 'fs');
+            var id = new mongo.ObjectId();
+            create_file(id, function(err) {
+                if (err) {
+                    return done(err);
+                }
+                gfs.open(id, 'r', done);
             });
         }
     );
@@ -131,105 +172,117 @@ describe('GridFs#open(id, \'w\', cb)', function() {
 describe('GridFs#close(file, cb)', function() {
     it('should close a write opened file without error',
         function(done) {
-            gfs.close(file1, done);
-        }
-    );
-});
-
-describe('GridFs#open(id, \'r\', cb)', function() {
-    it('should open an existing file when passing a ObjecId and `\'r\'` flag',
-        function(done) {
-            gfs.open(id1, 'r', function(err, _file) {
-                if (err) {
-                    done(err);
-                }
-                file1 = _file;
-                done();
+            var id = new mongo.ObjectId();
+            (new mongo.GridStore(db, id, 'w', {
+                root: 'fs'
+            })).open(function(err, file) {
+                var gfs = new GridFs(mongo, db, 'fs');
+                gfs.close(file, done);
             });
+
         }
     );
-});
-
-describe('GridFs#close(file, cb)', function() {
-    it('should close a write opened file without error',
+    it('should close a read opened file without error',
         function(done) {
-            gfs.close(file1, done);
+            var id = new mongo.ObjectId();
+            create_file(id, function(err) {
+                if (err) {
+                    return done(err);
+                }
+                (new mongo.GridStore(db, id, 'r', {
+                    root: 'fs'
+                })).open(function(err, file) {
+                    var gfs = new GridFs(mongo, db, 'fs');
+                    gfs.close(file, done);
+                });
+            });
         }
     );
 });
 
 describe('GridFs#write(fd, buffer, offset, len, pos, cb)', function() {
-    before('Open file for writing', function(done) {
-        gfs.open(id1, 'w', function(err, _file) {
-            file1 = _file;
-            done(err);
-        });
-    });
-
+    var data = crypto.randomBytes(512);
+    var id = new mongo.ObjectId();
     it('should write to a writable opened file without error', function(done) {
-        var buf = new Buffer('test');
-        gfs.write(file1, buf, 0, buf.length, null, function(err, len, buffer) {
-            if (err) {
-                return done(err);
-            }
-            try {
-                assert.equal(len, buf.length);
-                assert.equal(len, buffer.length);
-            } catch(err) {
-                done(err);
-            }
-            file1.close(function(err) {
-                if (err) {
-                    return done(err);
-                }
-                // Check if we correctly write the data
-                (new mongo.GridStore(db, id1, 'r')).open(function(err, gs) {
+        var gfs = new GridFs(mongo, db, 'fs');
+        gfs.openAsync(id, 'w')
+            .then(function(file) {
+                gfs.write(file, data, 0, data.length, function(err, len, buf) {
                     if (err) {
-                        return done(err);
-                    }
-                    gs.read(function(err, buffer) {
-                        if (err) {
-                            return done(err);
-                        }
+                        done(err);
+                    } else {
                         try {
-                            assert(buf.equals(buffer));
-                            done();
-                        } catch(err) {
+                            assert(_.isNumber(len));
+                            assert.equal(data.length, len);
+                            assert.equal(data.length, buf.length);
+                            file.close(done);
+                        } catch (err) {
                             done(err);
                         }
-                    });
+                    }
                 });
-            });
-        });
+            })
+            .catch(done);
+    });
+    it('should write the data correctly', function(done) {
+        check_written_data(id, data, done);
+    });
+    it('should fail when trying to write in a read opened file', function(done) {
+        var gfs = new GridFs(mongo, db, 'fs');
+        gfs.openAsync(id, 'r')
+            .then(function(file) {
+                gfs.write(file, data, 0, data.length, function(err, len, buf) {
+                    try {
+                        assert(! (_.isUndefined(err) || _.isNull(err)));
+                        done();
+                    } catch (err) {
+                        done(err);
+                    }
+                });
+            })
+            .catch(done);
     });
 });
 
 describe('GridFs#read(fd, buffer, offset, len, pos, cb)', function() {
+    var data = crypto.randomBytes(512);
+    var id = new mongo.ObjectId();
     before('Open file for readding', function(done) {
-        gfs.open(id1, 'r', function(err, _file) {
-            file1 = _file;
+        create_file(id, data, done);
+    });
+    it('should read from a readable opened file without error', function(done) {
+        var gfs = new GridFs(mongo, db, 'fs');
+        gfs.openAsync(id, 'r')
+            .then(function(file) {
+                var read_data = new Buffer(128);
+                gfs.read(file, read_data, 0, 128, 0, function(err, len, buffer) {
+                    if (err) {
+                        return done(err);
+                    }
+                    try {
+                        assert.equal(read_data, buffer);
+                        assert.equal(read_data.length, len);
+                        assert(data.slice(0, 128).equals(read_data));
+                        done();
+                    } catch (err) {
+                        done(err);
+                    }
+                });
+            })
+            .catch(done);
+    });
+});
+
+describe('GridFs#writeFile(path, buffer, cb)', function() {
+    var data = crypto.randomBytes(512);
+    var id = new mongo.ObjectId();
+    it('should write data to a file given its path without error', function(done) {
+        var gfs = new GridFs(mongo, db, 'fs');
+        gfs.writeFile(id.toString(), data, function(err) {
             done(err);
         });
     });
-
-    after('Close file', function(done) {
-        gfs.close(file1, done);
-    });
-
-    it('should read from a readable opened file without error', function(done) {
-        var buf = new Buffer(4);
-        gfs.read(file1, buf, 0, 4, 0, function(err, len, buffer) {
-            if (err) {
-                return done(err);
-            }
-            try {
-                assert.equal(4, len);
-                assert.equal('test', buf.toString());
-                assert.equal(buf, buffer);
-                done();
-            } catch (err) {
-                done(err);
-            }
-        });
+    it('should write the data correctly', function(done) {
+        check_written_data(id, data, done);
     });
 });
