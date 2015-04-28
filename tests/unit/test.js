@@ -5,7 +5,7 @@ var chai = require('chai');
 var crypto = require('crypto');
 var mongo = require('mongodb');
 var MongoClient = mongo.MongoClient;
-var GridFs = require('../lib/gridfs');
+var GridFs = require('../../lib/gridfs');
 
 // init chai api
 var expect = chai.expect;
