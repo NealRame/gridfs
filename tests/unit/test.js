@@ -1,5 +1,4 @@
 var _ = require('underscore');
-var assert = require('assert');
 var async = require('async');
 var chai = require('chai');
 var crypto = require('crypto');
@@ -11,17 +10,7 @@ var GridFs = require('../../lib/gridfs');
 var expect = chai.expect;
 chai.use(require("chai-as-promised"));
 
-// fixtures
 var db;
-
-function clean_up() {
-    var files = db.collection('fs.files');
-    var chunks = db.collection('fs.chunks');
-    return Promise.all([
-        make_promise(files.drop.bind(files)),
-        make_promise(chunks.drop.bind(chunks))
-    ]);
-}
 
 function make_callback(resolve, reject) {
     return function(err) {
@@ -39,6 +28,15 @@ function make_promise(fun) {
     return new Promise(function(resolve, reject) {
         fun.apply(null, args.concat(make_callback(resolve, reject)));
     });
+}
+
+function clean_up() {
+    var files = db.collection('fs.files');
+    var chunks = db.collection('fs.chunks');
+    return Promise.all([
+        make_promise(files.drop.bind(files)),
+        make_promise(chunks.drop.bind(chunks))
+    ]);
 }
 
 function file_open(file) {
@@ -131,17 +129,17 @@ describe('GridFs(mongo, db, root)', function() {
     });
     it('should have a `mongo` attribute equals to the one it get passed',
         function() {
-            assert.equal(mongo, gfs.mongo);
+            expect(gfs.mongo).to.equal(mongo);
         }
     );
     it('should have a `db` attribute equals to the one it get passed',
         function() {
-            assert.equal(db, gfs.db);
+            expect(gfs.db).to.equal(db);
         }
     );
     it('should have a `root` attribute equals to the one it get passed',
         function() {
-            assert.equal('fs', gfs.root);
+            expect(gfs.root).to.equal('fs');
         }
     );
 });
