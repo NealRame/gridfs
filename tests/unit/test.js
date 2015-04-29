@@ -14,17 +14,13 @@ chai.use(require("chai-as-promised"));
 // fixtures
 var db;
 
-function clean_up(done) {
+function clean_up() {
     var files = db.collection('fs.files');
     var chunks = db.collection('fs.chunks');
-    async.series([
-        function(next) {
-            files.drop(next);
-        },
-        function(next) {
-            chunks.drop(next);
-        }
-    ], done);
+    return Promise.all([
+        make_promise(files.drop.bind(files)),
+        make_promise(chunks.drop.bind(chunks))
+    ]);
 }
 
 function make_callback(resolve, reject) {
@@ -124,8 +120,8 @@ before('Connect to mongodb', function(done) {
     );
 });
 
-after('Clean up', function(done) {
-    clean_up(done);
+after('Clean up', function() {
+    return clean_up();
 });
 
 describe('GridFs(mongo, db, root)', function() {
