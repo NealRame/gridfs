@@ -557,3 +557,11 @@ describe('GridFs#createWriteStream(path)', function() {
         }
     );
 });
+
+describe('GridFs#readdir()',  function() {
+    it('should list all the file of a gridfs collection',
+        function() {
+            var gfs = new GridFs(mongo, db, 'fs');
+            return expect(make_promise(gfs.readdir.bind(gfs))).to.eventually.be.fulfilled;
+        });
+});
