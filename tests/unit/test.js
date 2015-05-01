@@ -235,6 +235,55 @@ describe('GridFs#close(file, cb)', function() {
     });
 });
 
+describe('GridFs#unlink(path, cb)', function() {
+    it('should remove an existing file without error when passing a string',
+        function() {
+            var id = new mongo.ObjectId();
+            return gs_file_create(id, crypto.randomBytes(512))
+                .then(function() {
+                    var gfs = new GridFs(mongo, db, 'fs');
+                    return make_promise(gfs.unlink.bind(gfs), id.toString());
+                })
+                .then(function() {
+                    return expect(gs_file_exist(id)).to.eventually.be.false;
+                })
+        }
+    );
+    it('should remove an existing file without error when passing an ObjectId',
+        function() {
+            var id = new mongo.ObjectId();
+            return gs_file_create(id, crypto.randomBytes(512))
+                .then(function() {
+                    var gfs = new GridFs(mongo, db, 'fs');
+                    return make_promise(gfs.unlink.bind(gfs), id);
+                })
+                .then(function() {
+                    return expect(gs_file_exist(id)).to.eventually.be.false;
+                })
+        }
+    );
+    it('should remove a non existing file without error when passing an string',
+        function() {
+            var gfs = new GridFs(mongo, db, 'fs');
+            var id = new mongo.ObjectId();
+            return make_promise(gfs.unlink.bind(gfs), id.toString())
+                .then(function() {
+                    return expect(gs_file_exist(id)).to.eventually.be.false;
+                })
+        }
+    );
+    it('should remove a non existing file without error when passing an ObjectId',
+        function() {
+            var gfs = new GridFs(mongo, db, 'fs');
+            var id = new mongo.ObjectId();
+            return make_promise(gfs.unlink.bind(gfs), id)
+                .then(function() {
+                    return expect(gs_file_exist(id)).to.eventually.be.false;
+                })
+        }
+    );
+})
+
 describe('GridFs#write(fd, buffer, offset, len, pos, cb)', function() {
     var data = crypto.randomBytes(512);
     var id = new mongo.ObjectId();
