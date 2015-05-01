@@ -1,10 +1,13 @@
 var _ = require('underscore');
 var async = require('async');
 var chai = require('chai');
+var concat = require('concat-stream');
 var crypto = require('crypto');
+var fs = require('fs');
 var mongo = require('mongodb');
 var MongoClient = mongo.MongoClient;
 var GridFs = require('../../lib/gridfs');
+var temp = require('temp').track();
 
 // init chai api
 var expect = chai.expect;
@@ -39,25 +42,25 @@ function clean_up() {
     ]);
 }
 
-function file_open(file) {
+function gs_file_open(file) {
     return new Promise(function(resolve, reject) {
         file.open(make_callback(resolve, reject));
     });
 }
 
-function file_close(file) {
+function gs_file_close(file) {
     return new Promise(function(resolve, reject) {
         file.close(make_callback(resolve, reject));
     });
 }
 
-function file_write(file, data) {
+function gs_file_write(file, data) {
     return new Promise(function(resolve, reject) {
         file.write(data || new Buffer(0), make_callback(resolve, reject));
     });
 }
 
-function file_read(file, buffer) {
+function gs_file_read(file, buffer) {
     return new Promise(function(resolve, reject) {
         if (buffer) {
             file.read(buffer.length, buffer, make_callback(resolve, reject));
@@ -67,17 +70,17 @@ function file_read(file, buffer) {
     });
 }
 
-function file_create(file_id, data) {
-    return file_open(new mongo.GridStore(db, file_id, 'w', {root: 'fs'}))
+function gs_file_create(file_id, data) {
+    return gs_file_open(new mongo.GridStore(db, file_id, 'w', {root: 'fs'}))
         .then(function(file) {
-            return file_write(file, data).then(function() {
+            return gs_file_write(file, data).then(function() {
                 return file;
             });
         })
-        .then(file_close);
+        .then(gs_file_close);
 }
 
-function file_exist(file_id, root) {
+function gs_file_exist(file_id, root) {
     return new Promise(function(resolve, reject) {
         mongo.GridStore.exist(
             db,
@@ -88,19 +91,34 @@ function file_exist(file_id, root) {
     });
 }
 
-function check_written_data(file_id, data) {
+function gs_check_written_data(file_id, data) {
     var file, buffer;
-    return file_open(new mongo.GridStore(db, file_id, 'r'))
+    return gs_file_open(new mongo.GridStore(db, file_id, 'r'))
         .then(function(file_) {
             file = file_;
-            return file_read(file);
+            return gs_file_read(file);
         })
         .then(function(buffer_) {
             buffer = buffer_;
-            return file_close(file);
+            return gs_file_close(file);
         })
         .then(function() {
             return buffer.equals(data);
+        });
+}
+
+function fs_file_create(data) {
+    var temp_file_info;
+    return make_promise(temp.open.bind(temp), {dir: __dirname})
+        .then(function(info) {
+            temp_file_info = info;
+            return make_promise(fs.write.bind(fs), temp_file_info.fd, data, 0, data.length);
+        })
+        .then(function() {
+            return make_callback(fs.close.bind(fs), temp_file_info.fd);
+        })
+        .then(function() {
+            return temp_file_info.path;
         });
 }
 
@@ -150,8 +168,8 @@ describe('GridFs#open(file_id, \'w\', cb)', function() {
             var gfs = new GridFs(mongo, db, 'fs');
             var id = new mongo.ObjectId();
             return expect(make_promise(gfs.open.bind(gfs), id.toString(), 'w')
-                .then(file_close)
-                .then(file_exist.bind(null, id, 'fs'))
+                .then(gs_file_close)
+                .then(gs_file_exist.bind(null, id, 'fs'))
             ).to.eventually.be.true;
         }
     );
@@ -160,8 +178,8 @@ describe('GridFs#open(file_id, \'w\', cb)', function() {
             var gfs = new GridFs(mongo, db, 'fs');
             var id = new mongo.ObjectId();
             return expect(make_promise(gfs.open.bind(gfs), id, 'w')
-                .then(file_close)
-                .then(file_exist.bind(null, id, 'fs'))
+                .then(gs_file_close)
+                .then(gs_file_exist.bind(null, id, 'fs'))
             ).to.eventually.be.true;
         }
     );
@@ -171,7 +189,7 @@ describe('GridFs#open(file_id, \'r\', cb)', function() {
     it('should open an existing file when passing a string and `\'r\'` flag',
         function() {
             var id = new mongo.ObjectId();
-            return expect(file_create(id)
+            return expect(gs_file_create(id)
                 .then(function() {
                     var gfs = new GridFs(mongo, db, 'fs');
                     return make_promise(gfs.open.bind(gfs), id.toString(), 'r');
@@ -182,7 +200,7 @@ describe('GridFs#open(file_id, \'r\', cb)', function() {
     it('should open an existing file when passing a ObjectId and `\'r\'` flag',
         function() {
             var id = new mongo.ObjectId();
-            return expect(file_create(id)
+            return expect(gs_file_create(id)
                 .then(function() {
                     var gfs = new GridFs(mongo, db, 'fs');
                     return make_promise(gfs.open.bind(gfs), id, 'r');
@@ -195,7 +213,7 @@ describe('GridFs#open(file_id, \'r\', cb)', function() {
 describe('GridFs#close(file, cb)', function() {
     it('should close a write opened file without error',
         function() {
-            return expect(file_open(new mongo.GridStore(db, new mongo.ObjectId(), 'w', {root: 'fs'}))
+            return expect(gs_file_open(new mongo.GridStore(db, new mongo.ObjectId(), 'w', {root: 'fs'}))
                 .then(function(file) {
                     var gfs = new GridFs(mongo, db, 'fs');
                     return make_promise(gfs.close.bind(gfs), file);
@@ -205,9 +223,9 @@ describe('GridFs#close(file, cb)', function() {
     it('should close a read opened file without error',
         function() {
             var id = new mongo.ObjectId();
-            return expect(file_create(id)
+            return expect(gs_file_create(id)
                 .then(function() {
-                    return file_open(new mongo.GridStore(db, id, 'r', {root: 'fs'}));
+                    return gs_file_open(new mongo.GridStore(db, id, 'r', {root: 'fs'}));
                 })
                 .then(function(file) {
                     var gfs = new GridFs(mongo, db, 'fs');
@@ -223,7 +241,7 @@ describe('GridFs#write(fd, buffer, offset, len, pos, cb)', function() {
     it('should write to a writable opened file without error',
         function() {
             var file;
-            return file_open(new mongo.GridStore(db, id, 'w', {root: 'fs'}))
+            return gs_file_open(new mongo.GridStore(db, id, 'w', {root: 'fs'}))
                 .then(function(file_) {
                     var gfs = new GridFs(mongo, db, 'fs');
                     file = file_;
@@ -237,18 +255,18 @@ describe('GridFs#write(fd, buffer, offset, len, pos, cb)', function() {
                     );
                 })
                 .then(function() {
-                    return file_close(file);
+                    return gs_file_close(file);
                 });
         }
     );
     it('should write the data correctly',
         function() {
-            return expect(check_written_data(id, data)).to.be.eventually.true;
+            return expect(gs_check_written_data(id, data)).to.be.eventually.true;
         }
     );
     it('should fail when trying to write in a read opened file',
         function() {
-            return file_open(new mongo.GridStore(db, id, 'r', {root: 'fs'}))
+            return gs_file_open(new mongo.GridStore(db, id, 'r', {root: 'fs'}))
                 .then(function(file) {
                     var gfs = new GridFs(mongo, db, 'fs');
                     return expect(
@@ -262,14 +280,14 @@ describe('GridFs#read(fd, buffer, offset, len, pos, cb)', function() {
     var data = crypto.randomBytes(512);
     var id = new mongo.ObjectId();
     before('Open file for readding', function() {
-        return file_create(id, data);
+        return gs_file_create(id, data);
     });
     it('should read from a readable opened file and store the result in the given buffer',
         function() {
             var file;
             var read;
             var buffer;
-            return file_open(new mongo.GridStore(db, id, 'r', {root: 'fs'}))
+            return gs_file_open(new mongo.GridStore(db, id, 'r', {root: 'fs'}))
                 .then(function(file_) {
                     var gfs = new GridFs(mongo, db, 'fs');
                     read = gfs.read.bind(gfs);
@@ -315,7 +333,7 @@ describe('GridFs#read(fd, buffer, offset, len, pos, cb)', function() {
                         && expect(result[1]).to.be.an.instanceof(Buffer)
                         && expect(result[1] === buffer).to.be.true
                         && expect(result[1].slice(0, result[0]).equals(data.slice(256))).to.be.true
-                    )
+                    );
                 })
                 .then(function() {
                     buffer = new Buffer(256 + 128);
@@ -327,8 +345,8 @@ describe('GridFs#read(fd, buffer, offset, len, pos, cb)', function() {
                         && expect(result[0]).to.be.a('number')
                         && expect(result[0]).to.equal(0)
                         && expect(result[1]).to.be.an.instanceof(Buffer)
-                    )
-                })
+                    );
+                });
         }
     );
 });
@@ -343,7 +361,7 @@ describe('GridFs#writeFile(path, buffer, cb)', function() {
         }
     );
     it('should write the data correctly', function() {
-        return expect(check_written_data(id, data)).to.be.eventually.true;
+        return expect(gs_check_written_data(id, data)).to.be.eventually.true;
     });
 });
 
@@ -353,7 +371,7 @@ describe.skip('GridFs#appendFile(path, buffer, cb)', function() {
 
     var id = new mongo.ObjectId();
     before('Create file', function(done) {
-        file_create(id, data1, done);
+        gs_file_create(id, data1, done);
     });
     it('should append data to a file given its path without error',
         function() {
@@ -362,7 +380,7 @@ describe.skip('GridFs#appendFile(path, buffer, cb)', function() {
         }
     );
     it('should append the data correctly', function() {
-        return expect(check_written_data(id, Buffer.concat([data1, data2]))).to.be.eventually.true;
+        return expect(gs_check_written_data(id, Buffer.concat([data1, data2]))).to.be.eventually.true;
     });
 });
 
@@ -370,7 +388,7 @@ describe('GridFs#readFile(path, buffer, cb)', function() {
     var data = crypto.randomBytes(512);
     var id = new mongo.ObjectId();
     before('Create file', function() {
-        return file_create(id, data);
+        return gs_file_create(id, data);
     });
     it('should read the content of a file given its path without error',
         function() {
@@ -378,6 +396,68 @@ describe('GridFs#readFile(path, buffer, cb)', function() {
             return make_promise(gfs.readFile.bind(gfs), id)
                 .then(function(read_data) {
                     return expect(read_data.equals(data)).to.be.true;
+                });
+        }
+    );
+});
+
+describe('GridFs#createReadStream(path)', function() {
+    var data = crypto.randomBytes(4096);
+    var id = new mongo.ObjectId();
+    before('Create file', function() {
+        return gs_file_create(id, data);
+    });
+    it('should create a readable stream without error',
+        function() {
+            var gfs = new GridFs(mongo, db, 'fs');
+            var istream = gfs.createReadStream(id);
+            expect(istream.constructor.super_).to.equal(require('stream').Duplex);
+            expect(istream.gs.mode).to.equal('r');
+        }
+    );
+    it('should read from stream without error',
+        function() {
+            return (new Promise(function(resolve, reject) {
+                var gfs = new GridFs(mongo, db, 'fs');
+                gfs.createReadStream(id)
+                    .once('error', reject)
+                    .pipe(concat(resolve));
+            }))
+            .then(function(buffer) {
+                return expect(buffer.equals(data)).to.be.true;
+            });
+        }
+    );
+});
+
+describe('GridFs#createWriteStream(path)', function() {
+    var data = crypto.randomBytes(4096);
+    var id = new mongo.ObjectId();
+    it('should create a writable stream without error',
+        function() {
+            var gfs = new GridFs(mongo, db, 'fs');
+            var ostream = gfs.createWriteStream(id);
+            expect(ostream.constructor.super_).to.equal(require('stream').Duplex);
+            expect(ostream.gs.mode).to.equal('w');
+        }
+    );
+    it('should write to stream without error',
+        function() {
+            return fs_file_create(data)
+                .then(function(path) {
+                    var gfs = new GridFs(mongo, db, 'fs');
+                    var istream = fs.createReadStream(path);
+                    var ostream = gfs.createWriteStream(id);
+
+                    return new Promise(function(resolve, reject) {
+                        ostream
+                            .once('end', resolve)
+                            .once('error', reject);
+                        istream.pipe(ostream);
+                    });
+                })
+                .then(function() {
+                    return expect(gs_check_written_data(id, data)).to.be.eventually.true;
                 });
         }
     );
