@@ -163,7 +163,7 @@ describe('GridFs(mongo, db, root)', function() {
 });
 
 describe('GridFs#open(file_id, \'w\', cb)', function() {
-    it('should create a file when passing a path string and `\'w\'` flag',
+    it('should create a file when passing a path string',
         function() {
             var gfs = new GridFs(mongo, db, 'fs');
             var id = new mongo.ObjectId();
@@ -173,7 +173,7 @@ describe('GridFs#open(file_id, \'w\', cb)', function() {
             ).to.eventually.be.true;
         }
     );
-    it('should create a file when passing an ObjectId and `\'w\'` flag',
+    it('should create a file when passing an ObjectId',
         function() {
             var gfs = new GridFs(mongo, db, 'fs');
             var id = new mongo.ObjectId();
@@ -183,10 +183,56 @@ describe('GridFs#open(file_id, \'w\', cb)', function() {
             ).to.eventually.be.true;
         }
     );
+    it('should create a file when passing a path string and options',
+        function() {
+            var gfs = new GridFs(mongo, db, 'fs');
+            var id = new mongo.ObjectId();
+            var content_type = 'image/png';
+            var metadata = {
+                foo: 'foo',
+                bar: 'bar'
+            };
+            return make_promise(gfs.open.bind(gfs), id.toString(), 'w', {
+                content_type: content_type,
+                metadata: metadata
+            })
+                .then(gs_file_close)
+                .then(gs_file_open.bind(null, new mongo.GridStore(db, id, 'r')))
+                .then(function(file) {
+                    return (
+                        expect(file.contentType).to.equal(content_type)
+                        && expect(file.metadata).to.deep.equal(metadata)
+                    );
+                });
+        }
+    );
+    it('should create a file when passing an ObjectId and options',
+        function() {
+            var gfs = new GridFs(mongo, db, 'fs');
+            var id = new mongo.ObjectId();
+            var content_type = 'image/png';
+            var metadata = {
+                foo: 'foo',
+                bar: 'bar'
+            };
+            return make_promise(gfs.open.bind(gfs), id, 'w', {
+                content_type: content_type,
+                metadata: metadata
+            })
+                .then(gs_file_close)
+                .then(gs_file_open.bind(null, new mongo.GridStore(db, id, 'r')))
+                .then(function(file) {
+                    return (
+                        expect(file.contentType).to.equal(content_type)
+                        && expect(file.metadata).to.deep.equal(metadata)
+                    );
+                });
+        }
+    );
 });
 
 describe('GridFs#open(file_id, \'r\', cb)', function() {
-    it('should open an existing file when passing a string and `\'r\'` flag',
+    it('should open an existing file when passing a string',
         function() {
             var id = new mongo.ObjectId();
             return expect(gs_file_create(id)
@@ -197,7 +243,7 @@ describe('GridFs#open(file_id, \'r\', cb)', function() {
             ).to.eventually.be.fulfilled;
         }
     );
-    it('should open an existing file when passing a ObjectId and `\'r\'` flag',
+    it('should open an existing file when passing a ObjectId',
         function() {
             var id = new mongo.ObjectId();
             return expect(gs_file_create(id)
