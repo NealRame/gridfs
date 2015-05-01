@@ -8,6 +8,7 @@ var mongo = require('mongodb');
 var MongoClient = mongo.MongoClient;
 var GridFs = require('../../lib/gridfs');
 var temp = require('temp').track();
+var util = require('util');
 
 // init chai api
 var expect = chai.expect;
@@ -140,7 +141,7 @@ after('Clean up', function() {
     return clean_up();
 });
 
-describe('GridFs(mongo, db, root)', function() {
+describe('GridFs(mongo, db)', function() {
     var gfs;
     before('Create a GridFs instance', function() {
         gfs = new GridFs(mongo, db, 'fs');
@@ -155,9 +156,32 @@ describe('GridFs(mongo, db, root)', function() {
             expect(gfs.db).to.equal(db);
         }
     );
+    it(util.format('should have a `root` attribute equals to `\'%s\'`', mongo.GridStore.DEFAULT_ROOT_COLLECTION),
+        function() {
+            expect(gfs.root).to.equal(mongo.GridStore.DEFAULT_ROOT_COLLECTION);
+        }
+    );
+});
+
+describe('GridFs(mongo, db, root)', function() {
+    var gfs;
+    var root = 'files'
+    before('Create a GridFs instance', function() {
+        gfs = new GridFs(mongo, db, root);
+    });
+    it('should have a `mongo` attribute equals to the one it get passed',
+        function() {
+            expect(gfs.mongo).to.equal(mongo);
+        }
+    );
+    it('should have a `db` attribute equals to the one it get passed',
+        function() {
+            expect(gfs.db).to.equal(db);
+        }
+    );
     it('should have a `root` attribute equals to the one it get passed',
         function() {
-            expect(gfs.root).to.equal('fs');
+            expect(gfs.root).to.equal(root);
         }
     );
 });
