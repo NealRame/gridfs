@@ -1,5 +1,4 @@
 var _ = require('underscore');
-var async = require('async');
 var chai = require('chai');
 var concat = require('concat-stream');
 var crypto = require('crypto');
