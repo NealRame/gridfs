@@ -28,13 +28,14 @@ directories, creating symbolic link, ...
 
 ## API
 
-### GridFs(mongo, db, root)
+### GridFs(mongo, db[, root])
 Construct a `GridFs` instance.
 
 __Parameters:__
 - `mongo`, the mongo driver instance.
 - `db`, the database to query.
-- `root`, the root collection that holds the files and chunks collection.
+- `root`, _optional_, the root collection that holds the files and chunks
+collection. Default value is `mongo.GridStore.DEFAULT_ROOT_COLLECTION`.
 
 ### GridFS#rename()
 Not supported.
@@ -290,4 +291,4 @@ Returns a new WriteStream (See `Writable` Stream).
 
 __Parameters:__
 - `id`, a `mongo.ObjectId` or a `String` convertible to a `mongo.ObjectId`.
-- `options`, _options_, not used.
+- `options`, _optional_, mongodb options to use when creating a file.
