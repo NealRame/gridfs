@@ -1,1 +1,1 @@
-module.exports = require('./lib/grid-fs');
+module.exports = require('./lib/gridfs');
