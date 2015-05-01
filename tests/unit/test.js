@@ -563,5 +563,6 @@ describe('GridFs#readdir()',  function() {
         function() {
             var gfs = new GridFs(mongo, db, 'fs');
             return expect(make_promise(gfs.readdir.bind(gfs))).to.eventually.be.fulfilled;
-        });
+        }
+    );
 });
