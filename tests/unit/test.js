@@ -496,6 +496,26 @@ describe('GridFs#readFile(path, buffer, cb)', function() {
     );
 });
 
+describe('GridFs#exists(id, cb)', function() {
+    it('should return true when a file exist',
+        function() {
+            var id = new mongo.ObjectId();
+            return gs_file_create(id, [])
+                .then(function() {
+                    var gfs = new GridFs(mongo, db, 'fs');
+                    return expect(make_promise(gfs.exists.bind(gfs), id)).to.be.eventually.true;
+                });
+        }
+    );
+    it('should return false when a file does not exist',
+        function() {
+            var gfs = new GridFs(mongo, db, 'fs');
+            var id = new mongo.ObjectId();
+            return expect(make_promise(gfs.exists.bind(gfs), id)).to.be.eventually.false;
+        }
+    );
+});
+
 describe('GridFs#createReadStream(path)', function() {
     var data = crypto.randomBytes(4096);
     var id = new mongo.ObjectId();
