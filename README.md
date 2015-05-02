@@ -64,14 +64,44 @@ Not supported.
 ### GridFS#lchmod()
 Not supported.
 
-### GridFS#stat()
-Not supported.
+### GridFS#stat(id, callback)
+Stat the file referenced by the given id.
+
+__Parameters:__
+- `id`, a `mongo.ObjectId` or a `String` convertible to a `mongo.ObjectId`.
+- `callback(err, stats)`, a nodejs style callback.
+
+See GridFs.Stats for more info about stat object.
+
+### GridFS#statAsync(id, callback)
+Same as `GridFS#stat` but it returns a `Promise`.
+
+__Parameters:__
+- `id`, a `mongo.ObjectId` or a `String` convertible to a `mongo.ObjectId`.
+- `callback(err, stats)`, a nodejs style callback.
+
+See GridFs.Stats for more info about stat object.
 
 ### GridFS#lstat()
 Not supported.
 
-### GridFS#fstat()
-Not supported.
+### GridFS#fstat(file, callback)
+Stat the specified file.
+
+__Parameters:__
+- `id`, a `mongo.ObjectId` or a `String` convertible to a `mongo.ObjectId`.
+- `callback(err, stats)`, a nodejs style callback.
+
+See GridFs.Stats for more info about stat object.
+
+### GridFS#fstatAsync(id, callback)
+Same as `GridFS#fstat` but it returns a `Promise`.
+
+__Parameters:__
+- `id`, a `mongo.ObjectId` or a `String` convertible to a `mongo.ObjectId`.
+- `callback(err, stats)`, a nodejs style callback.
+
+See GridFs.Stats for more info about stat object.
 
 ### GridFS#link()
 Not supported.
@@ -91,6 +121,15 @@ Asynchronously erases the file specified by the given id.
 __Parameters:__
 - `id`, a `mongo.ObjectId` or a `String` convertible to a `mongo.ObjectId`.
 - `callback`, a nodejs style callback.
+
+### GridFS#unlinkAsync(id)
+Same as `GridFS#unlink` but it returns a `Promise`.
+
+__Parameters:__
+- `id`, a `mongo.ObjectId` or a `String` convertible to a `mongo.ObjectId`.
+
+__Return:__
+- a `Promise`.
 
 ### GridFS#rmdir()
 Not supported.
@@ -292,3 +331,34 @@ Returns a new WriteStream (See `Writable` Stream).
 __Parameters:__
 - `id`, a `mongo.ObjectId` or a `String` convertible to a `mongo.ObjectId`.
 - `options`, _optional_, mongodb options to use when creating a file.
+
+### GridFs.Stats
+Objects returned from `GridFs#stat()`, and `GridFs.fstat()` and their
+promisified counterparts are of this type.
+
+- `stats.isFile()`, always returns `true`.
+- `stats.isDirectory()`, always return `false`.
+- `stats.isBlockDevice()`, always return `false`.
+- `stats.isCharacterDevice()`, always return `false`.
+- `stats.isSymbolicLink()`, always return `false`.
+- `stats.isFIFO()`, always return `false`.
+- `stats.isSocket()`, always return `false`.
+
+`util.inspect(stats)` would return a string very similar to this:
+```javascript
+{ dev: 0,
+  ino: 0,
+  mode: 0,
+  nlink: 1,
+  uid: 0,
+  gid: 0,
+  rdev: 0,
+  size: 12345,
+  blksize: 0,
+  blocks: Ø,
+  atime: Mon, 10 Oct 2011 23:24:11 GMT,
+  mtime: Mon, 10 Oct 2011 23:24:11 GMT,
+  ctime: Mon, 10 Oct 2011 23:24:11 GMT,
+  birthtime: Mon, 10 Oct 2011 23:24:11 GMT
+  contentType: 'image/png' }
+```
