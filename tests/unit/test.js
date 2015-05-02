@@ -601,6 +601,61 @@ describe('GridFs#createWriteStream(path)', function() {
     );
 });
 
+describe('GridFs#stat(path, cb)', function() {
+    var id = new mongo.ObjectId();
+    before('Create file', function() {
+        return gs_file_create(id, crypto.randomBytes(512));
+    });
+    it('should get file stat without error',
+        function() {
+            var gfs = new GridFs(mongo, db, 'fs');
+            return make_promise(gfs.stat.bind(gfs), id)
+                .then(function(stats) {
+                    return (
+                        expect(stats.isFile()).to.be.true
+                        && expect(stats.isDirectory()).to.be.false
+                        && expect(stats.isBlockDevice()).to.be.false
+                        && expect(stats.isCharacterDevice()).to.be.false
+                        && expect(stats.isSymbolicLink()).to.be.false
+                        && expect(stats.isFIFO()).to.be.false
+                        && expect(stats.isSocket()).to.be.false
+                        && expect(stats.size).to.equal(512)
+                        && expect(stats.contentType).to.exist
+                    );
+                });
+        }
+    );
+});
+
+describe('GridFs#fstat(file, cb)', function() {
+    var id = new mongo.ObjectId();
+    before('Create file', function() {
+        return gs_file_create(id, crypto.randomBytes(512));
+    });
+    it('should get file stat without error',
+        function() {
+            var gfs = new GridFs(mongo, db, 'fs');
+            return gs_file_open(new mongo.GridStore(db, id, 'r', {root: 'fs'}))
+                .then(function(file) {
+                    return make_promise(gfs.fstat.bind(gfs), file)
+                })
+                .then(function(stats) {
+                    return (
+                        expect(stats.isFile()).to.be.true
+                        && expect(stats.isDirectory()).to.be.false
+                        && expect(stats.isBlockDevice()).to.be.false
+                        && expect(stats.isCharacterDevice()).to.be.false
+                        && expect(stats.isSymbolicLink()).to.be.false
+                        && expect(stats.isFIFO()).to.be.false
+                        && expect(stats.isSocket()).to.be.false
+                        && expect(stats.size).to.equal(512)
+                        && expect(stats.contentType).to.exist
+                    );
+                });
+        }
+    );
+});
+
 describe('GridFs#readdir()',  function() {
     it('should list all the file of a gridfs collection',
         function() {
