@@ -1,6 +1,6 @@
 {
   "name": "gridfs",
-  "version": "0.5.6",
+  "version": "0.5.7",
   "description": "Provide a compatible fs interface for gridfs.",
   "main": "index.js",
   "directories": {
